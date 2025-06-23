@@ -180,8 +180,10 @@ def main(data_path, model_name='bert-base-uncased', epochs=3, batch_size=16, lr=
     train_loader, val_loader = create_data_loaders(data_path, tokenizer, max_length, batch_size)    #Create data loader = pytorch klasse
     
     # Opsæt optimizer og scheduler
-    optimizer = AdamW(model.parameters(), lr=lr)  # Optimizer, # optimizer: AdamW, model.parameters() er iterator over torch.Tensor
-    total_steps = len(train_loader) * epochs  # Antal træningssteg      # int: antal batches pr. epoch * antal epochs
+    optimizer = AdamW(model.parameters(), lr=lr)  # Opretter en AdamW-optimizer, som opdaterer modellens vægte under træning.
+
+    total_steps = len(train_loader) * epochs  # Antal træningssteg      # Beregner det samlede antal træningssteg (batches) i hele træningsforløbet.
+
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=int(0.1 * total_steps),        # int: 10% warmup
@@ -190,9 +192,9 @@ def main(data_path, model_name='bert-base-uncased', epochs=3, batch_size=16, lr=
 
     # Træn modellen flere gange (epochs)            #### er i gang
     for epoch in range(1, epochs + 1):      # epoch: int fra 1 til epochs inkl. går fra 1/3
-        print(f"Epoch {epoch}/{epochs}")    #placeholders i f-string
+        print(f"Epoch {epoch}/{epochs}")    #placeholders i f-string 
         loss = train_epoch(model, train_loader, optimizer, scheduler, device)
-        print(f"Loss: {loss:.4f}")      # formateret float
+        print(f"Loss: {loss:.4f}")      # formateret float      # Udskriver loss for denne epoch, afrundet til 4 decimaler
         eval_model(model, val_loader, device)   #deaktiverer gradientberegning med torch.no_grad()
         #Flytter batch-data til device. # eval: printer metrics
 
@@ -210,16 +212,16 @@ def main(data_path, model_name='bert-base-uncased', epochs=3, batch_size=16, lr=
 
         # metode    # Tokenizér brugerens besked, så den kan bruges som input til modellen
         enc = tokenizer.encode_plus(txt, add_special_tokens=True, max_length=max_length,
-        padding='max_length', truncation=True, return_tensors='pt')
+        padding='max_length', truncation=True, return_tensors='pt')     #truncation  Afkorter lange beskeder til max_length.
         inp = enc['input_ids'].to(device)       # torch.Tensor, shape [1, max_length]
         att = enc['attention_mask'].to(device)      # torch.Tensor, shape [1, max_length]
 
     # køres uden gradient
-        with torch.no_grad():
+        with torch.no_grad():       # Deaktiverer gradientberegning (hurtigere og bruger mindre hukommelse, da vi kun skal forudsige, ikke træne)
             out = model(input_ids=inp, attention_mask=att)  # out: SequenceClassifierOutput
-        probs = torch.softmax(out.logits, dim=1)[0] # torch.Tensor, shape [num_labels]
+        probs = torch.softmax(out.logits, dim=1)[0] # torch.Tensor, # Konverterer logits til sandsynligheder for hver klasse (fx [0.8, 0.2])
         labels = ['Sikker', 'Mistænkelig']
-        idx = torch.argmax(probs).item()    # idx: int
+        idx = torch.argmax(probs).item()    # idx: int# Finder index for den klasse med højest sandsynlighed (0 eller 1)
         print(f"Output: {labels[idx]} (Sikker={probs[0]:.2f}, Mistænkelig={probs[1]:.2f})\n")
 
 # Start programmet og tillad argumenter             
